@@ -3,12 +3,14 @@ module Main where
 import Codec.Picture (writePng, generateImage)
 import Codec.Picture.Types (PixelRGB8(..))
 import Data.Bits ((.|.))
+import Data.Char (toLower)
 import Data.Fixed (mod')
-import Data.List (splitAt, length)
+import Data.List (splitAt, length, intersect)
 import Data.Vector ((!), Vector, fromList)
 import Numeric (readHex)
 import Options.Applicative
 import System.Environment (getArgs)
+import System.Exit (die)
 
 
 data Options = Options
@@ -50,6 +52,12 @@ options = Options
           <> help "Name of the output file" )
 
 
+validHash :: String -> Bool
+validHash hash =
+  Data.List.length hash > 15 &&
+  (Data.List.intersect hash ['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'] == hash)
+
+
 generator :: Options -> IO ()
 generator (Options hash size output) =
   let
@@ -72,8 +80,14 @@ generator (Options hash size output) =
 
     margin =
       floor $ fromIntegral (size - cell * 5) / 2
+
+    hash' =
+      map toLower hash
   in
-    imageCreator decodedHash hueValue cell margin size output
+    do if validHash hash' then
+          imageCreator decodedHash hueValue cell margin size output
+       else
+          die "Invalid hash"
 
 
 imageCreator :: Vector Int -> Float -> Int -> Int -> Int -> String -> IO ()
